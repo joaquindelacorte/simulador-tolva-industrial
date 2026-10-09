@@ -1,0 +1,396 @@
+/* ====================================================
+   Práctica 9 – Simulador Tolva Industrial
+   Tema oscuro industrial
+==================================================== */
+
+/* ------ Variables ------ */
+:root {
+  --bg:         #1a1a2e;
+  --panel:      #16213e;
+  --panel2:     #0f3460;
+  --accent:     #e94560;
+  --active:     #00ff88;
+  --active-dim: #007744;
+  --wire:       #4a90d9;
+  --text:       #c8d6e5;
+  --text-muted: #6b7a8d;
+  --border:     #2a3a5c;
+  --warn:       #f0a500;
+  --danger:     #ff4444;
+  --idle-color: #334155;
+  --font:       'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* ------ Reset / Base ------ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow-x: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* ------ Header ------ */
+header {
+  background: var(--panel2);
+  border-bottom: 2px solid var(--accent);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+header h1 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--active);
+  letter-spacing: 0.05em;
+}
+header .subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.system-badge {
+  margin-left: auto;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: background 0.3s, color 0.3s;
+}
+.system-badge.IDLE     { background: var(--idle-color); color: #888; }
+.system-badge.FILLING_S4 { background: #0a3d2e; color: var(--active); }
+.system-badge.FILLING_S3 { background: #0a2f3d; color: #00ccff; }
+.system-badge.EMERGENCY  { background: #4a0000; color: var(--danger); animation: blink 0.5s infinite; }
+.system-badge.TIMEOUT    { background: #3d2600; color: var(--warn); animation: blink 0.8s infinite; }
+
+/* ------ Main 3-col layout ------ */
+.app-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 0.85fr;
+  gap: 12px;
+  padding: 12px;
+  height: calc(100vh - 56px);
+  min-height: 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-title {
+  background: var(--panel2);
+  padding: 7px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+}
+
+/* ------ Ladder Panel ------ */
+#ladder-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* SVG ladder element states */
+.wire     { stroke: #3a5a8a; stroke-width: 2; fill: none; }
+.rail     { stroke: #3a5a8a; stroke-width: 3; fill: none; }
+.contact-bar { stroke: #3a5a8a; stroke-width: 2; fill: none; }
+.coil-circle { stroke: #3a5a8a; stroke-width: 2; fill: none; }
+.timer-box   { stroke: #3a5a8a; stroke-width: 1.5; fill: rgba(30,40,80,0.6); }
+.element-label { font-family: var(--font); font-size: 9px; fill: #4a6a9a; }
+.rung-label    { font-family: var(--font); font-size: 9px; fill: #304060; }
+.nc-slash  { stroke: #3a5a8a; stroke-width: 2; fill: none; }
+
+/* Energized state */
+.energized .wire,
+.energized .contact-bar,
+.energized .coil-circle,
+.energized .nc-slash { stroke: var(--active); }
+.energized .element-label { fill: var(--active); }
+.energized .timer-box { stroke: var(--active); fill: rgba(0,50,30,0.4); }
+
+.partial .wire,
+.partial .contact-bar,
+.partial .coil-circle { stroke: var(--active-dim); }
+.partial .element-label { fill: var(--active-dim); }
+
+.alarm .wire,
+.alarm .contact-bar,
+.alarm .coil-circle { stroke: var(--danger); }
+.alarm .element-label { fill: var(--danger); }
+
+.coil-active .coil-circle { stroke: var(--active); fill: rgba(0,255,136,0.15); }
+.coil-active .element-label { fill: var(--active); }
+
+/* ------ Simulation Panel ------ */
+#sim-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Belt animation */
+@keyframes beltMoveRight {
+  0%   { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -24; }
+}
+@keyframes beltMoveLeft {
+  0%   { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 24; }
+}
+.belt-anim-right {
+  stroke-dasharray: 12 12;
+  animation: beltMoveRight 0.6s linear infinite;
+}
+.belt-anim-left {
+  stroke-dasharray: 12 12;
+  animation: beltMoveLeft 0.6s linear infinite;
+}
+.belt-stopped {
+  stroke-dasharray: 12 12;
+}
+
+/* Valve open/close */
+.valve-open  { fill: var(--active); opacity: 0.85; }
+.valve-closed{ fill: var(--danger); opacity: 0.85; }
+
+/* Particles (material flow) */
+@keyframes particleFall {
+  0%   { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(60px); opacity: 0; }
+}
+
+/* ------ Controls ------ */
+.controls-bar {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: var(--panel2);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-phys {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, filter 0.2s;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.5);
+  text-transform: uppercase;
+}
+.btn-phys:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.5); }
+
+.btn-start { background: #27ae60; color: #fff; }
+.btn-start:hover { filter: brightness(1.2); }
+.btn-stop  { background: var(--accent); color: #fff; }
+.btn-stop:hover { filter: brightness(1.2); }
+.btn-reset { background: var(--warn); color: #1a1a2e; }
+.btn-reset:hover { filter: brightness(1.2); }
+
+.toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0,0,0,0.2);
+}
+.toggle-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.toggle-sw {
+  appearance: none;
+  width: 36px;
+  height: 20px;
+  background: var(--idle-color);
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-sw::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: transform 0.2s;
+}
+.toggle-sw:checked { background: var(--accent); }
+.toggle-sw:checked::after { transform: translateX(16px); }
+
+/* ------ Status Panel ------ */
+.indicators-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: border-color 0.2s;
+}
+.indicator-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--idle-color);
+  flex-shrink: 0;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.indicator.on .indicator-dot {
+  background: var(--active);
+  box-shadow: 0 0 6px var(--active);
+}
+.indicator.on { border-color: var(--active-dim); }
+.indicator.warn .indicator-dot { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+.indicator.alarm .indicator-dot { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+.indicator-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.indicator.on .indicator-name { color: var(--active); }
+
+/* Timers */
+.timer-display {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.timer-card {
+  flex: 1;
+  padding: 8px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+.timer-card.active {
+  border-color: var(--warn);
+  background: rgba(80,40,0,0.3);
+}
+.timer-name {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.timer-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+.timer-card.active .timer-value { color: var(--warn); }
+.timer-bar-track {
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.timer-bar-fill {
+  height: 100%;
+  background: var(--warn);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* Event log */
+.log-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.event-log {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: 200px;
+  overflow-y: auto;
+  padding: 6px;
+  font-size: 0.7rem;
+}
+.log-entry {
+  padding: 2px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  display: flex;
+  gap: 8px;
+}
+.log-time { color: var(--text-muted); flex-shrink: 0; }
+.log-msg  { color: var(--text); }
+.log-entry.start .log-msg  { color: var(--active); }
+.log-entry.stop  .log-msg  { color: var(--accent); }
+.log-entry.warn  .log-msg  { color: var(--warn); }
+.log-entry.alarm .log-msg  { color: var(--danger); }
+
+/* ------ Animations ------ */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.emergency-blink { animation: blink 0.5s ease-in-out infinite; }
+.warn-blink { animation: blink 0.8s ease-in-out infinite; }
+
+/* ------ Responsive ------ */
+@media (max-width: 1000px) {
+  .app-layout {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+  #status-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 660px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+/* ------ Scrollbar ------ */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

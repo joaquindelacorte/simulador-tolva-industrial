@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P9 – Simulador Tolva + Bandas Transportadoras</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>&#x26A1; SIMULADOR INDUSTRIAL — PRÁCTICA 9</h1>
+    <div class="subtitle">Sistema Tolva + Bandas Transportadoras — IEC 60617 Ladder</div>
+  </div>
+  <div id="sys-badge" class="system-badge IDLE">IDLE</div>
+</header>
+
+<div class="app-layout">
+
+  <!-- ========== COLUMNA 1: LADDER ========== -->
+  <div class="panel" id="ladder-panel">
+    <div class="panel-title">&#x1F4CB; Diagrama Ladder — IEC 60617</div>
+    <div class="panel-body" style="padding:8px;">
+      <svg id="ladder-svg" viewBox="0 0 660 600" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Power Rails -->
+        <line class="rail" x1="18" y1="8" x2="18" y2="592"/>
+        <line class="rail" x1="642" y1="8" x2="642" y2="592"/>
+        <text class="rung-label" x="5" y="300" transform="rotate(-90,5,300)" text-anchor="middle" style="font-size:8px;fill:#2a3a5c">L+</text>
+        <text class="rung-label" x="654" y="300" transform="rotate(90,654,300)" text-anchor="middle" style="font-size:8px;fill:#2a3a5c">L-</text>
+
+        <!-- ===== RUNG 1: KV + KM1 (Start Circuit) ===== -->
+        <!-- y base = 55 -->
+        <g id="rung1">
+          <!-- Top branch: PB_START(NO) -- PB_STOP(NC) -->
+          <line class="wire" x1="18" y1="42" x2="60" y2="42"/>
+          <!-- Junction -->
+          <line class="wire" x1="60" y1="42" x2="60" y2="65"/>
+
+          <!-- PB_START NO contact at x=70,y=42 -->
+          <g id="c-pbstart">
+            <line class="wire" x1="60" y1="42" x2="85" y2="42"/>
+            <line class="contact-bar" x1="85" y1="34" x2="85" y2="50"/>
+            <line class="contact-bar" x1="96" y1="34" x2="96" y2="50"/>
+            <line class="wire" x1="96" y1="42" x2="120" y2="42"/>
+            <text class="element-label" x="90" y="30">PB_START</text>
+          </g>
+
+          <!-- PB_STOP NC contact at x=140,y=42 -->
+          <g id="c-pbstop">
+            <line class="wire" x1="120" y1="42" x2="155" y2="42"/>
+            <line class="contact-bar" x1="155" y1="34" x2="155" y2="50"/>
+            <line class="nc-slash" x1="155" y1="50" x2="166" y2="34"/>
+            <line class="contact-bar" x1="166" y1="34" x2="166" y2="50"/>
+            <line class="wire" x1="166" y1="42" x2="200" y2="42"/>
+            <text class="element-label" x="160" y="30">PB_STOP</text>
+          </g>
+
+          <!-- Seal-in branch (parallel): KM1 NO at y=65 -->
+          <g id="c-sealin">
+            <line class="wire" x1="60" y1="65" x2="85" y2="65"/>
+            <line class="contact-bar" x1="85" y1="57" x2="85" y2="73"/>
+            <line class="contact-bar" x1="96" y1="57" x2="96" y2="73"/>
+            <line class="wire" x1="96" y1="65" x2="200" y2="65"/>
+            <text class="element-label" x="90" y="53">KM1</text>
+          </g>
+
+          <!-- merge branches at x=200 -->
+          <line class="wire" x1="200" y1="42" x2="200" y2="65"/>
+          <line class="wire" x1="200" y1="53" x2="240" y2="53"/>
+
+          <!-- /EMERG NC contact at x=240 -->
+          <g id="c-emerg">
+            <line class="wire" x1="240" y1="53" x2="270" y2="53"/>
+            <line class="contact-bar" x1="270" y1="45" x2="270" y2="61"/>
+            <line class="nc-slash" x1="270" y1="61" x2="281" y2="45"/>
+            <line class="contact-bar" x1="281" y1="45" x2="281" y2="61"/>
+            <line class="wire" x1="281" y1="53" x2="320" y2="53"/>
+            <text class="element-label" x="275" y="41">EMERG</text>
+          </g>
+
+          <!-- Coil KV -->
+          <g id="coil-kv">
+            <line class="wire" x1="320" y1="53" x2="460" y2="53"/>
+            <circle class="coil-circle" cx="480" cy="53" r="12"/>
+            <line class="wire" x1="492" y1="53" x2="510" y2="53"/>
+            <text class="element-label" x="480" y="48" text-anchor="middle">KV</text>
+            <line class="wire" x1="510" y1="53" x2="642" y2="53"/>
+          </g>
+
+          <!-- Coil KM1 -->
+          <g id="coil-km1">
+            <line class="wire" x1="320" y1="75" x2="460" y2="75"/>
+            <circle class="coil-circle" cx="480" cy="75" r="12"/>
+            <line class="wire" x1="492" y1="75" x2="642" y2="75"/>
+            <text class="element-label" x="480" y="70" text-anchor="middle">KM1</text>
+            <line class="wire" x1="320" y1="53" x2="320" y2="75"/>
+            <line class="wire" x1="510" y1="53" x2="510" y2="75"/>
+            <line class="wire" x1="642" y1="53" x2="642" y2="75"/>
+          </g>
+
+          <text class="rung-label" x="5" y="58" style="font-size:7px">R1</text>
+        </g>
+
+        <!-- ===== RUNG 2: KM2 ===== -->
+        <!-- y base = 150 -->
+        <g id="rung2">
+          <line class="wire" x1="18" y1="160" x2="55" y2="160"/>
+          <!-- KV NO -->
+          <g id="c-kv-r2">
+            <line class="wire" x1="55" y1="160" x2="80" y2="160"/>
+            <line class="contact-bar" x1="80" y1="152" x2="80" y2="168"/>
+            <line class="contact-bar" x1="91" y1="152" x2="91" y2="168"/>
+            <line class="wire" x1="91" y1="160" x2="120" y2="160"/>
+            <text class="element-label" x="85" y="148">KV</text>
+          </g>
+          <!-- /FC4 NC -->
+          <g id="c-nfc4">
+            <line class="wire" x1="120" y1="160" x2="155" y2="160"/>
+            <line class="contact-bar" x1="155" y1="152" x2="155" y2="168"/>
+            <line class="nc-slash" x1="155" y1="168" x2="166" y2="152"/>
+            <line class="contact-bar" x1="166" y1="152" x2="166" y2="168"/>
+            <line class="wire" x1="166" y1="160" x2="205" y2="160"/>
+            <text class="element-label" x="160" y="148">/FC4</text>
+          </g>
+          <!-- /FC3 NC -->
+          <g id="c-nfc3-r2">
+            <line class="wire" x1="205" y1="160" x2="240" y2="160"/>
+            <line class="contact-bar" x1="240" y1="152" x2="240" y2="168"/>
+            <line class="nc-slash" x1="240" y1="168" x2="251" y2="152"/>
+            <line class="contact-bar" x1="251" y1="152" x2="251" y2="168"/>
+            <line class="wire" x1="251" y1="160" x2="290" y2="160"/>
+            <text class="element-label" x="245" y="148">/FC3</text>
+          </g>
+          <!-- Coil KM2 -->
+          <g id="coil-km2">
+            <line class="wire" x1="290" y1="160" x2="460" y2="160"/>
+            <circle class="coil-circle" cx="480" cy="160" r="12"/>
+            <line class="wire" x1="492" y1="160" x2="642" y2="160"/>
+            <text class="element-label" x="480" y="155" text-anchor="middle">KM2</text>
+          </g>
+          <text class="rung-label" x="5" y="164" style="font-size:7px">R2</text>
+        </g>
+
+        <!-- ===== RUNG 3: KM3 ===== -->
+        <!-- y base = 230 -->
+        <g id="rung3">
+          <line class="wire" x1="18" y1="240" x2="55" y2="240"/>
+          <!-- KV NO -->
+          <g id="c-kv-r3">
+            <line class="wire" x1="55" y1="240" x2="80" y2="240"/>
+            <line class="contact-bar" x1="80" y1="232" x2="80" y2="248"/>
+            <line class="contact-bar" x1="91" y1="232" x2="91" y2="248"/>
+            <line class="wire" x1="91" y1="240" x2="130" y2="240"/>
+            <text class="element-label" x="85" y="228">KV</text>
+          </g>
+          <!-- FC4_LATCH NO (S4 full trigger latch) -->
+          <g id="c-fc4latch">
+            <line class="wire" x1="130" y1="240" x2="155" y2="240"/>
+            <line class="contact-bar" x1="155" y1="232" x2="155" y2="248"/>
+            <line class="contact-bar" x1="166" y1="232" x2="166" y2="248"/>
+            <line class="wire" x1="166" y1="240" x2="200" y2="240"/>
+            <text class="element-label" x="160" y="228">FC4_M</text>
+          </g>
+          <!-- /FC3 NC -->
+          <g id="c-nfc3-r3">
+            <line class="wire" x1="200" y1="240" x2="235" y2="240"/>
+            <line class="contact-bar" x1="235" y1="232" x2="235" y2="248"/>
+            <line class="nc-slash" x1="235" y1="248" x2="246" y2="232"/>
+            <line class="contact-bar" x1="246" y1="232" x2="246" y2="248"/>
+            <line class="wire" x1="246" y1="240" x2="280" y2="240"/>
+            <text class="element-label" x="240" y="228">/FC3</text>
+          </g>
+          <!-- /KM2 NC (interlock) -->
+          <g id="c-nkm2">
+            <line class="wire" x1="280" y1="240" x2="315" y2="240"/>
+            <line class="contact-bar" x1="315" y1="232" x2="315" y2="248"/>
+            <line class="nc-slash" x1="315" y1="248" x2="326" y2="232"/>
+            <line class="contact-bar" x1="326" y1="232" x2="326" y2="248"/>
+            <line class="wire" x1="326" y1="240" x2="365" y2="240"/>
+            <text class="element-label" x="320" y="228">/KM2</text>
+          </g>
+          <!-- Coil KM3 -->
+          <g id="coil-km3">
+            <line class="wire" x1="365" y1="240" x2="460" y2="240"/>
+            <circle class="coil-circle" cx="480" cy="240" r="12"/>
+            <line class="wire" x1="492" y1="240" x2="642" y2="240"/>
+            <text class="element-label" x="480" y="235" text-anchor="middle">KM3</text>
+          </g>
+          <text class="rung-label" x="5" y="244" style="font-size:7px">R3</text>
+        </g>
+
+        <!-- ===== RUNG 4: EMERGENCY (FC3 AND FC4) ===== -->
+        <!-- y base = 320 -->
+        <g id="rung4">
+          <line class="wire" x1="18" y1="340" x2="55" y2="340"/>
+          <!-- FC3 NO -->
+          <g id="c-fc3-r4">
+            <line class="wire" x1="55" y1="340" x2="80" y2="340"/>
+            <line class="contact-bar" x1="80" y1="332" x2="80" y2="348"/>
+            <line class="contact-bar" x1="91" y1="332" x2="91" y2="348"/>
+            <line class="wire" x1="91" y1="340" x2="130" y2="340"/>
+            <text class="element-label" x="85" y="328">FC3</text>
+          </g>
+          <!-- FC4 NO -->
+          <g id="c-fc4-r4">
+            <line class="wire" x1="130" y1="340" x2="155" y2="340"/>
+            <line class="contact-bar" x1="155" y1="332" x2="155" y2="348"/>
+            <line class="contact-bar" x1="166" y1="332" x2="166" y2="348"/>
+            <line class="wire" x1="166" y1="340" x2="210" y2="340"/>
+            <text class="element-label" x="160" y="328">FC4</text>
+          </g>
+          <!-- Coil RESET (emergency) -->
+          <g id="coil-emerg">
+            <line class="wire" x1="210" y1="340" x2="450" y2="340"/>
+            <rect class="timer-box" x="450" y="328" width="50" height="24" rx="3"/>
+            <text class="element-label" x="475" y="337" text-anchor="middle" style="font-size:8px">RESET</text>
+            <text class="element-label" x="475" y="347" text-anchor="middle" style="font-size:8px">ALL</text>
+            <line class="wire" x1="500" y1="340" x2="642" y2="340"/>
+          </g>
+          <text class="rung-label" x="5" y="344" style="font-size:7px">R4</text>
+        </g>
+
+        <!-- ===== RUNG 5: TIMEOUT FC4 (TON) ===== -->
+        <!-- y base = 420 -->
+        <g id="rung5">
+          <line class="wire" x1="18" y1="445" x2="55" y2="445"/>
+          <!-- FC4 Rising Edge (represented as FC4 NO) -->
+          <g id="c-fc4-r5">
+            <line class="wire" x1="55" y1="445" x2="80" y2="445"/>
+            <line class="contact-bar" x1="80" y1="437" x2="80" y2="453"/>
+            <line class="contact-bar" x1="91" y1="437" x2="91" y2="453"/>
+            <!-- Rising edge arrow marker -->
+            <polyline points="83,450 83,440 91,440" class="contact-bar" fill="none"/>
+            <line class="wire" x1="91" y1="445" x2="130" y2="445"/>
+            <text class="element-label" x="85" y="433">FC4&#x2191;</text>
+          </g>
+          <!-- TON T_FC4 -->
+          <g id="timer-tfc4">
+            <line class="wire" x1="130" y1="445" x2="200" y2="445"/>
+            <rect class="timer-box" x="200" y="428" width="110" height="34" rx="4"/>
+            <text class="element-label" x="255" y="441" text-anchor="middle" style="font-size:8px;font-weight:700">TON T_FC4</text>
+            <text class="element-label" x="255" y="453" text-anchor="middle" style="font-size:8px">PT: 10s</text>
+            <text id="tfc4-display" class="element-label" x="260" y="441" text-anchor="end" style="font-size:9px;fill:#f0a500">--</text>
+            <line class="wire" x1="310" y1="445" x2="350" y2="445"/>
+          </g>
+          <!-- Coil RESET KV -->
+          <g id="coil-tfc4-reset">
+            <line class="wire" x1="350" y1="445" x2="450" y2="445"/>
+            <rect class="timer-box" x="450" y="433" width="60" height="24" rx="3"/>
+            <text class="element-label" x="480" y="442" text-anchor="middle" style="font-size:8px">RESET</text>
+            <text class="element-label" x="480" y="452" text-anchor="middle" style="font-size:8px">KV</text>
+            <line class="wire" x1="510" y1="445" x2="642" y2="445"/>
+          </g>
+          <text class="rung-label" x="5" y="449" style="font-size:7px">R5</text>
+        </g>
+
+        <!-- ===== RUNG 6: TIMEOUT FC3 (TON) ===== -->
+        <!-- y base = 510 -->
+        <g id="rung6">
+          <line class="wire" x1="18" y1="535" x2="55" y2="535"/>
+          <!-- FC3 Rising Edge -->
+          <g id="c-fc3-r6">
+            <line class="wire" x1="55" y1="535" x2="80" y2="535"/>
+            <line class="contact-bar" x1="80" y1="527" x2="80" y2="543"/>
+            <line class="contact-bar" x1="91" y1="527" x2="91" y2="543"/>
+            <polyline points="83,540 83,530 91,530" class="contact-bar" fill="none"/>
+            <line class="wire" x1="91" y1="535" x2="130" y2="535"/>
+            <text class="element-label" x="85" y="523">FC3&#x2191;</text>
+          </g>
+          <!-- TON T_FC3 -->
+          <g id="timer-tfc3">
+            <line class="wire" x1="130" y1="535" x2="200" y2="535"/>
+            <rect class="timer-box" x="200" y="518" width="110" height="34" rx="4"/>
+            <text class="element-label" x="255" y="531" text-anchor="middle" style="font-size:8px;font-weight:700">TON T_FC3</text>
+            <text class="element-label" x="255" y="543" text-anchor="middle" style="font-size:8px">PT: 10s</text>
+            <text id="tfc3-display" class="element-label" x="260" y="531" text-anchor="end" style="font-size:9px;fill:#f0a500">--</text>
+            <line class="wire" x1="310" y1="535" x2="350" y2="535"/>
+          </g>
+          <!-- Coil RESET KV -->
+          <g id="coil-tfc3-reset">
+            <line class="wire" x1="350" y1="535" x2="450" y2="535"/>
+            <rect class="timer-box" x="450" y="523" width="60" height="24" rx="3"/>
+            <text class="element-label" x="480" y="532" text-anchor="middle" style="font-size:8px">RESET</text>
+            <text class="element-label" x="480" y="542" text-anchor="middle" style="font-size:8px">KV</text>
+            <line class="wire" x1="510" y1="535" x2="642" y2="535"/>
+          </g>
+          <text class="rung-label" x="5" y="539" style="font-size:7px">R6</text>
+        </g>
+
+      </svg>
+    </div>
+  </div>
+
+  <!-- ========== COLUMNA 2: SIMULACIÓN ========== -->
+  <div class="panel" id="sim-panel">
+    <div class="panel-title">&#x1F3ED; Simulación Gráfica</div>
+    <div class="panel-body" style="padding:6px;">
+
+      <svg id="sim-svg" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="tolvaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#2a3a6a;stop-opacity:1"/>
+            <stop offset="100%" style="stop-color:#1a2040;stop-opacity:1"/>
+          </linearGradient>
+          <linearGradient id="fillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.9"/>
+            <stop offset="100%" style="stop-color:#007744;stop-opacity:1"/>
+          </linearGradient>
+          <linearGradient id="fillGradLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#00ccff;stop-opacity:0.9"/>
+            <stop offset="100%" style="stop-color:#005577;stop-opacity:1"/>
+          </linearGradient>
+          <clipPath id="clip-s4">
+            <rect x="358" y="270" width="84" height="110"/>
+          </clipPath>
+          <clipPath id="clip-s3">
+            <rect x="58" y="270" width="84" height="110"/>
+          </clipPath>
+        </defs>
+
+        <!-- Background grid dots -->
+        <pattern id="dot" patternUnits="userSpaceOnUse" width="20" height="20">
+          <circle cx="1" cy="1" r="0.8" fill="#1e2d50"/>
+        </pattern>
+        <rect width="500" height="400" fill="url(#dot)"/>
+
+        <!-- ========== TOLVA ========== -->
+        <!-- Hopper body (trapezoid) -->
+        <polygon points="170,15 330,15 290,80 210,80" fill="url(#tolvaGrad)" stroke="#3a5a9a" stroke-width="1.5"/>
+        <!-- Tolva label -->
+        <text x="250" y="50" text-anchor="middle" fill="#4a6aaa" font-family="monospace" font-size="10" font-weight="bold">TOLVA</text>
+        <!-- Material level indicator in tolva (static visual) -->
+        <polygon points="185,45 315,45 290,78 210,78" fill="#1a2856" stroke="none"/>
+        <!-- Material surface (animated wave) -->
+        <rect id="tolva-level" x="186" y="48" width="128" height="20" fill="#2a3a7a" opacity="0.6" rx="2"/>
+
+        <!-- KV Valve (below tolva) -->
+        <g id="valve-group">
+          <rect x="218" y="80" width="64" height="18" rx="4" id="valve-rect" class="valve-closed"/>
+          <text x="250" y="93" text-anchor="middle" fill="#1a1a2e" font-family="monospace" font-size="9" font-weight="bold" id="valve-text">KV &#x2716;</text>
+        </g>
+
+        <!-- Material stream from tolva to Band 1 -->
+        <g id="material-stream" opacity="0">
+          <rect x="238" y="98" width="24" height="30" fill="#7a6a40" opacity="0.7"/>
+          <rect x="241" y="98" width="6" height="30" fill="#aa9a60" opacity="0.4"/>
+        </g>
+
+        <!-- ========== BANDA 1 ========== -->
+        <!-- Belt structure -->
+        <rect x="80" y="135" width="340" height="22" fill="#1a2040" stroke="#2a4060" stroke-width="1.5" rx="3"/>
+        <!-- Belt rollers -->
+        <circle cx="80" cy="146" r="8" fill="#2a3a6a" stroke="#3a5a9a" stroke-width="1"/>
+        <circle cx="420" cy="146" r="8" fill="#2a3a6a" stroke="#3a5a9a" stroke-width="1"/>
+        <!-- Belt surface (animated lines = moving material) -->
+        <line id="belt1-anim" x1="88" y1="146" x2="412" y2="146" stroke="#3a5a8a" stroke-width="12" stroke-linecap="butt" class="belt-stopped"/>
+        <!-- Band 1 label -->
+        <text x="250" y="131" text-anchor="middle" fill="#3a5a8a" font-family="monospace" font-size="9">BANDA 1 — KM1</text>
+        <!-- Arrow direction indicator -->
+        <text id="belt1-arrow" x="370" y="149" fill="#4a6a8a" font-family="monospace" font-size="11">&#x276F;&#x276F;</text>
+
+        <!-- ========== BANDA 2 ========== -->
+        <rect x="40" y="200" width="420" height="22" fill="#1a2040" stroke="#2a4060" stroke-width="1.5" rx="3"/>
+        <circle cx="40" cy="211" r="8" fill="#2a3a6a" stroke="#3a5a9a" stroke-width="1"/>
+        <circle cx="460" cy="211" r="8" fill="#2a3a6a" stroke="#3a5a9a" stroke-width="1"/>
+        <!-- Belt surface -->
+        <line id="belt2-anim" x1="48" y1="211" x2="452" y2="211" stroke="#3a5a8a" stroke-width="12" stroke-linecap="butt" class="belt-stopped"/>
+        <!-- Band 2 label -->
+        <text x="250" y="196" text-anchor="middle" fill="#3a5a8a" font-family="monospace" font-size="9">BANDA 2 — KM2/KM3</text>
+        <!-- Direction arrows (updated by JS) -->
+        <g id="band2-dir-right">
+          <text x="350" y="214" fill="#00ff88" font-family="monospace" font-size="13" opacity="0">&#x276F;&#x276F;&#x276F;</text>
+        </g>
+        <g id="band2-dir-left">
+          <text x="130" y="214" fill="#00ccff" font-family="monospace" font-size="13" opacity="0">&#x276E;&#x276E;&#x276E;</text>
+        </g>
+
+        <!-- Drop point from Band1 to Band2 -->
+        <line x1="250" y1="157" x2="250" y2="200" stroke="#4a6a8a" stroke-width="3" stroke-dasharray="4 4" id="band-junction"/>
+
+        <!-- ========== CONTAINER S3 (LEFT) ========== -->
+        <g id="container-s3">
+          <!-- Container body -->
+          <rect x="58" y="270" width="84" height="110" fill="#0f1a30" stroke="#2a5a8a" stroke-width="2" rx="3"/>
+          <!-- Fill bar (grows from bottom) -->
+          <rect id="fill-s3" x="60" y="378" width="80" height="0" fill="url(#fillGradLeft)" clip-path="url(#clip-s3)"/>
+          <!-- S3 label -->
+          <text x="100" y="265" text-anchor="middle" fill="#2a5a9a" font-family="monospace" font-size="10" font-weight="bold">S3</text>
+          <!-- FC3 sensor indicator -->
+          <rect x="68" y="373" width="64" height="6" rx="2" fill="#2a3a5a" id="fc3-sensor"/>
+          <!-- Percentage text -->
+          <text id="s3-pct" x="100" y="340" text-anchor="middle" fill="#2a5a8a" font-family="monospace" font-size="11" font-weight="bold">0%</text>
+          <!-- Status label -->
+          <text id="s3-status" x="100" y="392" text-anchor="middle" fill="#3a6a9a" font-family="monospace" font-size="8">ESPERA</text>
+        </g>
+
+        <!-- ========== CONTAINER S4 (RIGHT) ========== -->
+        <g id="container-s4">
+          <rect x="358" y="270" width="84" height="110" fill="#0f1a30" stroke="#2a8a5a" stroke-width="2" rx="3"/>
+          <rect id="fill-s4" x="360" y="378" width="80" height="0" fill="url(#fillGrad)" clip-path="url(#clip-s4)"/>
+          <text x="400" y="265" text-anchor="middle" fill="#2a8a5a" font-family="monospace" font-size="10" font-weight="bold">S4</text>
+          <rect x="368" y="373" width="64" height="6" rx="2" fill="#2a3a5a" id="fc4-sensor"/>
+          <text id="s4-pct" x="400" y="340" text-anchor="middle" fill="#2a8a5a" font-family="monospace" font-size="11" font-weight="bold">0%</text>
+          <text id="s4-status" x="400" y="392" text-anchor="middle" fill="#3a8a6a" font-family="monospace" font-size="8">ESPERA</text>
+        </g>
+
+        <!-- Connection line from Band2 to S4 -->
+        <line x1="400" y1="222" x2="400" y2="270" stroke="#3a5a8a" stroke-width="2" stroke-dasharray="4 4" id="line-s4"/>
+        <!-- Connection line from Band2 to S3 -->
+        <line x1="100" y1="222" x2="100" y2="270" stroke="#3a5a8a" stroke-width="2" stroke-dasharray="4 4" id="line-s3"/>
+
+        <!-- Particles container (drawn by JS) -->
+        <g id="particles-layer"/>
+
+        <!-- KM direction labels -->
+        <text id="km2-label" x="400" y="246" text-anchor="middle" fill="#2a5a3a" font-family="monospace" font-size="8" opacity="0">&#x25BC; KM2</text>
+        <text id="km3-label" x="100" y="246" text-anchor="middle" fill="#2a3a8a" font-family="monospace" font-size="8" opacity="0">&#x25BC; KM3</text>
+
+      </svg>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <button class="btn-phys btn-start" id="btn-start" onmousedown="onStart()" onmouseup="onStartUp()">&#x25B6; START</button>
+      <button class="btn-phys btn-stop" id="btn-stop" onclick="onStop()">&#x25A0; STOP</button>
+      <button class="btn-phys btn-reset" onclick="onReset()">&#x27F3; RESET</button>
+
+      <div class="toggle-group">
+        <span class="toggle-label">FC3 (S3)</span>
+        <input type="checkbox" class="toggle-sw" id="fc3-toggle" onchange="onFc3Toggle(this)">
+      </div>
+      <div class="toggle-group">
+        <span class="toggle-label">FC4 (S4)</span>
+        <input type="checkbox" class="toggle-sw" id="fc4-toggle" onchange="onFc4Toggle(this)">
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== COLUMNA 3: STATUS PANEL ========== -->
+  <div class="panel" id="status-panel">
+    <div class="panel-title">&#x1F4CA; Panel de Estado</div>
+    <div class="panel-body">
+
+      <!-- Indicators -->
+      <div class="indicators-grid">
+        <div class="indicator" id="ind-kv">
+          <div class="indicator-dot"></div>
+          <span class="indicator-name">KV</span>
+        </div>
+        <div class="indicator" id="ind-km1">
+          <div class="indicator-dot"></div>
+          <span class="indicator-name">KM1</span>
+        </div>
+        <div class="indicator" id="ind-km2">
+          <div class="indicator-dot"></div>
+          <span class="indicator-name">KM2</span>
+        </div>
+        <div class="indicator" id="ind-km3">
+          <div class="indicator-dot"></div>
+          <span class="indicator-name">KM3</span>
+        </div>
+        <div class="indicator" id="ind-fc3">
+          <div class="indicator-dot"></div>
+          <span class="indicator-name">FC3</span>
+        </div>
+        <div class="indicator" id="ind-fc4">
+          <div class="indicator-dot"></div>
+          <span class="indicator-name">FC4</span>
+        </div>
+      </div>
+
+      <!-- Timers -->
+      <div class="timer-display">
+        <div class="timer-card" id="tcard-fc4">
+          <div class="timer-name">T_FC4</div>
+          <div class="timer-value" id="tval-fc4">--</div>
+          <div class="timer-bar-track">
+            <div class="timer-bar-fill" id="tbar-fc4" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="timer-card" id="tcard-fc3">
+          <div class="timer-name">T_FC3</div>
+          <div class="timer-value" id="tval-fc3">--</div>
+          <div class="timer-bar-track">
+            <div class="timer-bar-fill" id="tbar-fc3" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="log-title">&#x1F4DD; Log de Eventos</div>
+      <div class="event-log" id="event-log">
+        <div class="log-entry"><span class="log-time">00:00</span><span class="log-msg">Sistema iniciado — IDLE</span></div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end app-layout -->
+
+<script src="script.js"></script>
+</body>
+</html>
